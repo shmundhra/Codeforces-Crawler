@@ -1,14 +1,15 @@
-import sys
 import requests
 from bs4 import BeautifulSoup
 
 USER_STATUS_URL = 'http://codeforces.com/api/user.status?'
-SUBMISSION_URL_FORMAT = 'http://codeforces.com/contest/%d/submission/%d'
+SUBMISSION_URL_FORMAT = 'http://codeforces.com/contest/%d/submission/%d', \
+                        'http://codeforces.com/gym/%d/submission/%d'
+
 
 class Crawler:
 
     def get_user_status(self, handle, start=0, offset=0):
-        params = {'handle' : handle}
+        params = {'handle': handle}
         if (not start == 0) or (not offset == 0):
             params['from'] = start
             params['count'] = offset
@@ -22,8 +23,9 @@ class Crawler:
 
         return True, str(res.status_code)
 
-    def get_source(self, submission_id, contest_id):
-        res = requests.get(SUBMISSION_URL_FORMAT % (contest_id, submission_id))
+    def get_source(self, submission_id, contest_id, index):
+        res = requests.get(SUBMISSION_URL_FORMAT[index] %
+                           (contest_id, submission_id))
 
         if not res.status_code == 200:
             return True, str(res.status_code)
@@ -32,5 +34,5 @@ class Crawler:
         source = soup.find(id='program-source-text')
 
         if source is None:
-            return True, 'faild to parse source'
+            return True, 'Failed to Parse Source'
         return False, source.get_text()

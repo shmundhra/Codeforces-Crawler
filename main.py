@@ -4,6 +4,7 @@ import platform
 from crawler import Crawler
 from option import Option
 
+
 class Main:
 
     def __init__(self, crawler, option, user_info):
@@ -21,8 +22,9 @@ class Main:
 
     def init(self):
         if os.path.isdir(self.handle):
-            sys.exit("\n* ERROR: Directory '%s' already exists." % (self.handle))
-        os.makedirs(self.handle)
+            print("\n*WARNING: Directory '%s' already exists." % (self.handle))
+        else:
+            os.makedirs(self.handle)
 
     def find_solved_problem(self):
         print('\n* find solved problem... ')
@@ -62,31 +64,39 @@ class Main:
 
             source_tree = self.option.source_tree(solved)
             source_name = self.option.source_name(solved)
-            ext_error, source_ext = self.option.get_ext(language)
-            if ext_error:
-                print('\n* ERROR: get_ext, ' + source_ext)
-                print('* Failed to download the source (submission: %d, contest: %d, index: %s)\n' % (submission_id, contest_id, problem_id))
-                fail += 1
-                continue
+            file_path = '%s%s%s' % (source_tree, source_name,
+                                    self.option.get_ext(language))
 
-            file_path = '%s%s%s' % (source_tree, source_name, source_ext)
             if os.path.exists(file_path):
-                print('* source already exists (submission: %d, contest: %d, index: %s)' % (submission_id, contest_id, problem_id))
-                fail += 1
-                continue
-       
-            source_error, source = self.crawler.get_source(submission_id, contest_id)
-            if source_error:
-                print('\n* ERROR: get_source, ' + source)
-                print('* Failed to download the source (submission: %d, contest: %d, index: %s)\n' % (submission_id, contest_id, problem_id))
+                print('* source already exists \
+                      (submission: %d, contest: %d, index: %s)' %
+                      (submission_id, contest_id, problem_id))
                 fail += 1
                 continue
 
+            source_error, source = self.crawler.get_source(submission_id, contest_id, 0)
+
+            if source_error:
+                source_error, source = self.crawler.get_source(submission_id, contest_id, 1)
+
+            if source_error:
+                # print(ERROR_FORMAT % ('get_source, ' + source))
+                print('* Failed to download the source \
+                      (submission: %d, contest: %d, index: %s)\n' %
+                      (submission_id, contest_id, problem_id))
+                fail += 1
+                continue
+
+            location = "//https://codeforces.com/contest/%d/problem/%s\n\n" \
+                       % (contest_id, problem_id)
+
+            source = location + source
             self.save_source(source_tree, file_path, source)
             print("* Successfully saved the '%s'" % (file_path))
             success += 1
 
-        print('\n* Total: %d, Success: %d, Fail: %d' % (success + fail, success, fail))
+        print('\n* Total: %d, Success: %d, Fail: %d'
+              % (success + fail, success, fail))
 
     def save_source(self, source_tree, file_path, source):
         if not os.path.isdir(source_tree):
@@ -96,10 +106,11 @@ class Main:
         f.write(source)
         f.close()
 
+
 if __name__ == '__main__':
     try:
         user_info = {}
-        
+
         if platform.system() == 'Windows':
             user_info['os'] = 'Windows'
         elif platform.system() == 'Linux':
@@ -110,18 +121,21 @@ if __name__ == '__main__':
         user_info['handle'] = input('* Codeforces Handle: ')
 
         mkdir = input('* mkdir option [true/false]: ')
+
         while True:
             if mkdir == 'true' or mkdir == 'false':
                 break
             mkdir = input('* mkdir option [true/false]: ')
-    
+
         if mkdir == 'false':
             user_info['mkdir'] = False
         if mkdir == 'true':
             user_info['mkdir'] = True
             user_info['dir_name'] = input('* directory name format: ')
+            # user_info['dir_name'] = [CONTEST]
 
-        user_info['source_name'] = input('* source name format: ')
+        # user_info['source_name'] = input('* source name format: ')
+        user_info['source_name'] = "[CONTEST]-[INDEX]: [TITLE]"
 
         crawler = Crawler()
         option = Option(user_info)
